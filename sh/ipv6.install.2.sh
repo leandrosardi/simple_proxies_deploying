@@ -1,5 +1,5 @@
-prefix = $1
-echo "Prefix is: " . prefix 
+PREFIX = $1
+echo "Prefix is: " . $PREFIX 
 
-port = $2
-echo "Port is: " . port 
+PORT = $2
+echo "Port is: " . $PORT 
