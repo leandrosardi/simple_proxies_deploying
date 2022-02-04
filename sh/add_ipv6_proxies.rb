@@ -1,7 +1,7 @@
 require 'net/ssh'
 require_relative './config.rb'
 
-servers.each { |h|
+SERVERS.each { |h|
     print "#{h[:ip]}... "
 
 #    print 'connecting... '
@@ -30,7 +30,7 @@ servers.each { |h|
 #    puts
 
 #    print "7. "
-    stdout = ssh.exec!("echo '#{h[:password].gsub("'", "\\'")}' | sudo -S su root -c './ipv6.install.2.sh #{h[:subnet]} #{port}'")
+    stdout = ssh.exec!("echo '#{h[:password].gsub("'", "\\'")}' | sudo -S su root -c './ipv6.install.2.sh #{h[:subnet]} #{PORT}'")
 #    puts stdout
 #    puts
 
