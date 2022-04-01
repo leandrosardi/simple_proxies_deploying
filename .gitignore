@@ -1,0 +1,15 @@
+# ignore lock files
+*.lock
+
+# ignore log files
+*.log
+*.log.data
+
+# ignore .project file created by IDE
+.project
+
+# ignore .maintenance file used to turn the app unavailable
+.maintenance
+
+# production configuration files
+config.rb
