@@ -111,41 +111,6 @@ class RemoteHost
         raise SimpleProxiesDeployingException.new(4) if !self.ssh
     end
 
-    # dig inside the 3proxy.cfg file to find the ipv6 address assigned to this port
-    # return nil if there is not external_ip (not proxy) defined for this port.
-    # return the external IP if there is one.
-    # 
-    # raise an exception if there is more than 1 extenral IP defined for this host.
-    # raise an exception if the external ip is not belonging the subnet defined at ipv6 subnet 48
-    # 
-    # TODO: deprecated!
-    #
-    def get_proxy_extenral_ip(proxy_port)
-        # validation: this host must have defined an ipv6 subnet 48
-        raise SimpleProxiesDeployingException.new(5) if !self.ipv6_subnet_48
-
-        # validation: proxy_port must be a number
-        raise SimpleProxiesDeployingException.new(2) if !RemoteHost.valid_port_number?(proxy_port)
-
-        # validation: this host must have ssh connection
-        raise SimpleProxiesDeployingException.new(3) if !self.ssh
-
-        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'grep #{proxy_port} /usr/local/etc/3proxy/cfg/3proxy.cfg'")
-        a = stdout.scan(MATCH_IPV6_STANDARD)
-
-        # validation: there is no more than 1 extenral IP defined for this host
-        raise SimpleProxiesDeployingException.new(7, a.join(', ')) if a.size > 1
-
-        # validation: there is no extenral IP defined for this port
-        # raise SimpleProxiesDeployingException.new(8) if a.size == 0
-
-        # validation: the external ip must be belonging the subnet defined at ipv6 subnet 48
-        raise SimpleProxiesDeployingException.new(6, "#{a[0]} and #{self.ipv6_subnet_48}") if !a[0].include?(self.ipv6_subnet_48)
-
-        # return the external IP
-        a.size == 0 ? nil : a[0]
-    end
-
     # Parse the file /usr/local/etc/3proxy/cfg/3proxy.cfg
     # Return an array of hash descriptors like this: {:port=>"4248", :external_ip=>"2602:fed2:770f:df10:8dc9:556f:dfba:8ee3", :subnet64=>"2602:fed2:770f:df10"}
     def get_ipv6_proxies()
@@ -180,9 +145,9 @@ class RemoteHost
     # raise an exception proxy_port_to is not higher than proxy_port_from.
     # raise an exception if proxy_port_to+1 is not mod 50.
     def check_all_ipv6_proxies(proxy_port_from=DEFAULT_PROXY_PORT_FROM, proxy_port_to=DEFAULT_PROXY_PORT_TO)
-        raise SimpleProxiesDeployingException.new(9, "#{proxy_port_from}") if proxy_port_from != DEFAULT_PROXY_PORT_FROM
+        #raise SimpleProxiesDeployingException.new(9, "#{proxy_port_from}") if proxy_port_from != DEFAULT_PROXY_PORT_FROM
         raise SimpleProxiesDeployingException.new(10, "#{proxy_port_from} and #{proxy_port_to}") if proxy_port_from > proxy_port_to
-        raise SimpleProxiesDeployingException.new(11, "from #{proxy_port_from} to #{proxy_port_to}") if (proxy_port_to-proxy_port_from+1) % DEFAULT_PROXY_PORTS_BATCH_SIZE != 0
+        #raise SimpleProxiesDeployingException.new(11, "from #{proxy_port_from} to #{proxy_port_to}") if (proxy_port_to-proxy_port_from+1) % DEFAULT_PROXY_PORTS_BATCH_SIZE != 0
 
         # return this array with the list of glitches found
         errors = []
@@ -264,17 +229,163 @@ class RemoteHost
         errors
     end # def check_all_ipv6_proxies
 
+
+    # run linux command to get the interface name
+    # TODO: validate outout
+    def get_interface_name()
+        # validation: this host must have ssh connection
+        raise SimpleProxiesDeployingException.new(3) if !self.ssh
+        ssh.exec!("ip -o -4 route show to default | awk '{print $5}' | sed 1'!d'").strip
+    end
+
+    # run linux command to stop the proxy server
+    # TODO: validate outout
+    def stop_proxies()
+        # validation: this host must have ssh connection
+        raise SimpleProxiesDeployingException.new(3) if !self.ssh
+        ssh.exec!("sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh stop > /dev/null 2>&1")
+    end
+
+    # run linux command to stop the proxy server
+    # TODO: get this working
+    # TODO: validate outout
+    def start_proxies()
+        # validation: this host must have ssh connection
+        raise SimpleProxiesDeployingException.new(3) if !self.ssh
+        ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start > /dev/null 2>&1'")
+    end
+    
     # check a list of port numbers and install the proxies that are not configured yet
     # raise an exception if proxy_port_from is not 4000.
     # raise an exception proxy_port_to is not higher than proxy_port_from.
     # raise an exception if proxy_port_to+1 is not mod 50.
-    def install_ipv6_proxies(proxy_port_from=DEFAULT_PROXY_PORT_FROM, proxy_port_to=DEFAULT_PROXY_PORT_TO)
-        raise SimpleProxiesDeployingException.new(9, "#{proxy_port_from}") if proxy_port_from != DEFAULT_PROXY_PORT_FROM
+    def install(proxy_port_from=DEFAULT_PROXY_PORT_FROM, proxy_port_to=DEFAULT_PROXY_PORT_TO)
+        #raise SimpleProxiesDeployingException.new(9, "#{proxy_port_from}") if proxy_port_from != DEFAULT_PROXY_PORT_FROM
         raise SimpleProxiesDeployingException.new(10, "#{proxy_port_from} and #{proxy_port_to}") if proxy_port_from > proxy_port_to
-        raise SimpleProxiesDeployingException.new(11, "from #{proxy_port_from} to #{proxy_port_to}") if (proxy_port_to-proxy_port_from+1) % DEFAULT_PROXY_PORTS_BATCH_SIZE != 0
+        #raise SimpleProxiesDeployingException.new(11, "from #{proxy_port_from} to #{proxy_port_to}") if (proxy_port_to-proxy_port_from+1) % DEFAULT_PROXY_PORTS_BATCH_SIZE != 0
 
+        # get list of 4-hex-digits subnets
+        logger.logs "Initialize list of 4-hex-digit numbers... "
+        hex4digits = []
+        "123456789ABCDEF".split('').each { |a| # don't inclulude codes with leading 0, in order to get codes that are 4 digits even in STANDARD notation
+            "0123456789ABCDEF".split('').each { |b|
+                "0123456789ABCDEF".split('').each { |c|
+                    "0123456789ABCDEF".split('').each { |d|
+                        hex4digits << "#{a}#{b}#{c}#{d}".downcase
+                    }
+               }
+            }
+        }
+        logger.logf "done (#{hex4digits.size} numbers)"
 
+        logger.logs "Shuffle list of 4-hex-digit numbers... "
+        hex4digits.shuffle!
+        logger.logf "done (#{hex4digits[0]}, #{hex4digits[1]}, #{hex4digits[2]}, ...)"
 
+        logger.logs "Initialize list proxies... "
+        results = get_ipv6_proxies
+        logger.logf "done (#{results.size} ports)"
+
+        # TODO: validate the output
+        logger.logs "Install ethtool... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'apt-get install ethtool'")
+        logger.done
+
+        # TODO: validate the output
+        logger.logs "Install curl... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'apt-get install curl'")
+        logger.done
+        
+        # TODO: validate the output
+        logger.logs "Get interface name... "
+        interface = self.get_interface_name
+        logger.logf "done (#{interface})"
+
+        logger.logs "Get server main ip from configuration... "
+        mainip = self.net_remote_ip
+        logger.logf "done (#{mainip})"
+
+        logger.logs "Stop proxy server... "
+        stdout = self.stop_proxies
+        logger.done #logf "done (#{stdout})"
+
+        # TODO: validate this output
+        logger.logs "Add /48 subnet to interface... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'ifconfig #{interface} add #{self.ipv6_subnet_48}::/48'")
+        logger.done #logf "done (#{stdout})"
+
+        # TODO: validate this output
+        logger.logs "Add default route for IPv6... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'ip -6 route add default via #{self.ipv6_subnet_48}::1'")
+        logger.done #logf "done (#{stdout})"
+
+        # TODO: validate this output
+        logger.logs "Setup /etc/network.conf... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'echo \"ifconfig #{interface} add #{self.ipv6_subnet_48}::/48
+        ip -6 route add default via #{self.ipv6_subnet_48}::1\" >> /etc/network.conf'")
+        logger.done #.logf "done (#{stdout})"
+
+        # TODO: validate this output
+        logger.logs "Remove exit 0 FROM rc.local... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c \"sed -i '/exit 0/d' /etc/rc.local\"")
+        logger.done #.logf "done (#{stdout})"
+
+        # TODO: validate this output
+        logger.logs "Remove exit 0 FROM rc.local... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'echo \"bash /etc/network.conf\" >> /etc/rc.local'")
+        logger.done #.logf "done (#{stdout})"
+
+        logger.logs "Remove not available /64 subnets... "
+        available_hex4digits = hex4digits.reject { |hex|
+            results.map { |result| 
+                result[:subnet64] 
+            }.include?("#{self.ipv6_subnet_48}:#{hex}") 
+        }
+        logger.logf("done (#{available_hex4digits.size})")
+
+        logger.logs "Iterate ports... "
+        port = proxy_port_from
+        while port<=proxy_port_to
+            logger.logs "Checking port #{port}... "
+            if results.map { |result| result[:port].to_i }.include?(port)
+                logger.logf "done (already installed)"
+            else
+                #logger.logs "Get an available subnet64... "
+                hex = available_hex4digits[0]
+                subnet64 = "#{self.ipv6_subnet_48}:#{hex}"
+                #logger.logf "done (#{subnet64})"
+
+                #logger.logs "Remove #{subnet64} from list of available subnets64... "
+                available_hex4digits.reject! { |x| x == hex }
+                #logger.logf("done (#{available_hex4digits.size})")
+
+                #logger.logs "Build random IPv6... "
+                ipv6 = "#{subnet64}:#{hex4digits.shuffle[0]}:#{hex4digits.shuffle[0]}:#{hex4digits.shuffle[0]}:#{hex4digits.shuffle[0]}" 
+                #logger.logf("done (#{ipv6})")
+                
+                #logger.logs "Add record to configuration file... "
+                stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'echo proxy -p#{port} -6 -a -n  -i0.0.0.0 -e#{ipv6} >> /usr/local/etc/3proxy/cfg/3proxy.cfg'")
+                #logger.logf("done (#{stdout})")
+
+                #logger.logs "Add IPv6 address... "
+                stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'ip address add #{ipv6} dev #{interface} > /dev/null 2>&1'")
+                #logger.logf("done (#{stdout})")
+
+                logger.done
+            end
+            port += 1
+        end
+
+        # TODO: validate this output
+        logger.logs "Start proxy server... "
+        stdout = self.start_proxies
+        logger.done #logf "done (#{stdout})"
+
+        # TODO: validate this output
+        logger.logs "Add exit 0 TO rc.local... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'echo \"exit 0\" >> /etc/rc.local'")
+        logger.logf "done (#{stdout})"
+    
     end
 
     def ssh_disconnect()

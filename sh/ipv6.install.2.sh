@@ -47,7 +47,6 @@ while [ "$ind" -le $nip ]; do
 
     echo "ip address add $prefix:$a:$b:$c:$d:$e dev $interface" >> /etc/network.conf
     echo "$prefix:$a:$b:$c:$d:$e" >> /etc/network.ips
-
 done
 
 sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start
