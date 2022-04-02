@@ -268,52 +268,13 @@ class RemoteHost
     # raise an exception if proxy_port_from is not 4000.
     # raise an exception proxy_port_to is not higher than proxy_port_from.
     # raise an exception if proxy_port_to+1 is not mod 50.
-    def install_proxies(proxy_port_from, proxy_port_to)
+    def install_ipv6_proxies(proxy_port_from=DEFAULT_PROXY_PORT_FROM, proxy_port_to=DEFAULT_PROXY_PORT_TO)
         raise SimpleProxiesDeployingException.new(9, "#{proxy_port_from}") if proxy_port_from != DEFAULT_PROXY_PORT_FROM
         raise SimpleProxiesDeployingException.new(10, "#{proxy_port_from} and #{proxy_port_to}") if proxy_port_from > proxy_port_to
         raise SimpleProxiesDeployingException.new(11, "from #{proxy_port_from} to #{proxy_port_to}") if (proxy_port_to-proxy_port_from+1) % DEFAULT_PROXY_PORTS_BATCH_SIZE != 0
 
-        port = proxy_port_from
-        while port <= proxy_port_to
-            # si es el fin de un batch
-            if (port-proxy_port_from+1) % DEFAULT_PROXY_PORTS_BATCH_SIZE == 0
-                first_batch_port = port - DEFAULT_PROXY_PORTS_BATCH_SIZE + 1
-                extip = self.get_proxy_extenral_ip(first_batch_port)
-                # if proxies are not installed
-                if extip.nil?
-                    #    print "4. "
-                    stdout = ssh.exec!("echo '#{self.password.gsub("'", "\\'")}' | sudo -S su root -c 'ufw disable'")
-                    #    puts stdout
-                    #    puts
 
-                    #    print "4. "
-                    stdout = ssh.exec!("rm ./ipv6.install.2.sh")
-                    #    puts stdout
-                    #    puts
-                        
-                    #    print "5. "
-                    stdout = ssh.exec!("wget https://raw.githubusercontent.com/leandrosardi/x/main/sh/ipv6.install.2.sh")
-                    #    puts stdout
-                    #    puts
 
-                    #    print "6. "
-                    stdout = ssh.exec!("chmod +x ./ipv6.install.2.sh")
-                    #    puts stdout
-                    #    puts
-
-                    #    print "7. "
-                    stdout = ssh.exec!("echo '#{self.password.gsub("'", "\\'")}' | sudo -S su root -c './ipv6.install.2.sh #{self.ipv6_subnet_48} #{first_batch_port}'")
-                    #    puts stdout
-                    #    puts
-
-                    if stdout =~ /Copy your proxies to another file/
-                        puts 'success'
-                    else
-                        puts "error: #{stdout}"
-                    end
-                end # if extip.nil?
-            end
-        end
     end
 
     def ssh_disconnect()
