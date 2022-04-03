@@ -20,24 +20,18 @@ SERVERS.select { |s| s[:net_remote_ip] == PARSER.value('ip') }.each { |h|
     begin
 
         logger.logs 'creating object... '
-        host = RemoteHost.parse(h)
+        host = RemoteHost.parse(h, logger)
         logger.done
 
         logger.logs 'connecting... '
         host.ssh_connect
         logger.done
 
-        logger.logs 'checking ports configuration... '
-        errors = host.check_all_ipv6_proxies
-        logger.logf "done (#{errors.size} errors)"
+        # TODO: validate the current configuration before install anything?
 
-        # show errors
-        if errors.size > 0
-            errors.each { |error|
-                logger.log ''
-                logger.log error.to_s.gsub(' :', "\n\t:")
-            }
-        end
+        logger.logs 'install 3proxy... '
+        host.install4('leandros', 'SantaClara123')
+        logger.done
 
         logger.logs "disconnecting... "
         host.ssh_disconnect
@@ -51,3 +45,4 @@ SERVERS.select { |s| s[:net_remote_ip] == PARSER.value('ip') }.each { |h|
         logger.logf "unhandled exception (#{e.to_console})"
     end
 }
+

@@ -1,5 +1,5 @@
 require_relative '../config.rb'
-require_relative '../lib/simpleproxiesdeploying.rb'
+require_relative '../lib/simple_proxies_deploying.rb'
 
 logger = BlackStack::LocalLogger.new('./checkall.log')
 

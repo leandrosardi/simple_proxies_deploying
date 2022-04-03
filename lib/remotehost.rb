@@ -258,7 +258,7 @@ class RemoteHost
 
 
     # install ipv4 proxies
-    def install(username, password, port=3130)
+    def install4(username, password, port=3130)
         #raise SimpleProxiesDeployingException.new(9, "#{proxy_port_from}") if proxy_port_from != DEFAULT_PROXY_PORT_FROM
         #raise SimpleProxiesDeployingException.new(10, "#{proxy_port_from} and #{proxy_port_to}") if proxy_port_from > proxy_port_to
         #raise SimpleProxiesDeployingException.new(11, "from #{proxy_port_from} to #{proxy_port_to}") if (proxy_port_to-proxy_port_from+1) % DEFAULT_PROXY_PORTS_BATCH_SIZE != 0
@@ -320,62 +320,20 @@ rotate 30
 internal 0.0.0.0
 external 0.0.0.0
 authcache ip 60
+users #{username}:CL:#{password}
+
 auth strong
 allow #{username}
-users #{username}:CL:#{password}
-proxy -p#{port} -a -n\" > /usr/local/etc/3proxy/cfg/3proxy.cfg'")
+proxy -p#{port} -a -n
+\" > /usr/local/etc/3proxy/cfg/3proxy.cfg'")
         logger.done #logf "done (#{stdout})"
 
-        logger.logs "Setup proxy.cfg #1... "
-        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'chmod 700 /usr/local/etc/3proxy/cfg/3proxy.cfg'")
-        logger.logf "done (#{stdout})"
-
-        logger.logs "Setup proxy.cfg #2... "
-        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c \"sed -i '14s/.*/       \\/usr\\/local\\/etc\\/3proxy\\/cfg\\/3proxy.cfg/' /usr/local/etc/3proxy/scripts/rc.d/proxy.sh\"")
-        logger.logf "done (#{stdout})"
-
-        logger.logs "Setup proxy.cfg #3... "
-        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sed -i \"4ish /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start\" /etc/rc.local'")
-        logger.logf "done (#{stdout})"
-
-#        logger.logs "Setup proxy.cfg #4... "
-#        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c \"sed -i '17s/.*/auth strong/' /usr/local/etc/3proxy/cfg/3proxy.cfg\"")
-#        logger.logf "done (#{stdout})"
-
-#        logger.logs "Setup proxy.cfg #5... "
-#        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sed -i \"16s/.*/users #{username}:CL:#{password}/\" /usr/local/etc/3proxy/cfg/3proxy.cfg'")
-#        logger.logf "done (#{stdout})"
-
-#        logger.logs "Setup proxy.cfg #6... "
-#        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sed -i \"18s/.*/allow #{username} /\" /usr/local/etc/3proxy/cfg/3proxy.cfg'")
-#        logger.logf "done (#{stdout})"        
-
-        logger.logs "Start proxies... "
+        logger.logs "Start proxy service... "
         self.start_proxies
         logger.done
 
     end # def install_3proxy
                 
-    # install additional ipv4 proxies
-    # raise an exception proxy_port_to is not higher than proxy_port_from.
-    def install4(username, password)
-        #raise SimpleProxiesDeployingException.new(9, "#{proxy_port_from}") if proxy_port_from != DEFAULT_PROXY_PORT_FROM
-        raise SimpleProxiesDeployingException.new(10, "#{proxy_port_from} and #{proxy_port_to}") if proxy_port_from > proxy_port_to
-        #raise SimpleProxiesDeployingException.new(11, "from #{proxy_port_from} to #{proxy_port_to}") if (proxy_port_to-proxy_port_from+1) % DEFAULT_PROXY_PORTS_BATCH_SIZE != 0
-
-        # TODO: validate the output
-        logger.logs "Get interface name... "
-        interface = self.get_interface_name
-        logger.logf "done (#{interface})"
-
-        logger.logs "Get server main ip from configuration... "
-        mainip = self.net_remote_ip
-        logger.logf "done (#{mainip})"
-        
-        # TODO: Code Me!
-
-    end # def install4
-
     # install ipv6 proxies
     # raise an exception proxy_port_to is not higher than proxy_port_from.
     def install6(proxy_port_from=DEFAULT_PROXY_PORT_FROM, proxy_port_to=DEFAULT_PROXY_PORT_TO)
@@ -494,7 +452,7 @@ proxy -p#{port} -a -n\" > /usr/local/etc/3proxy/cfg/3proxy.cfg'")
                 stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'ip address add #{ipv6} dev #{interface} > /dev/null 2>&1'")
                 #logger.logf("done (#{stdout})")
 
-                logger.done
+                logger.logf('done (installed)')
             end
             port += 1
         end

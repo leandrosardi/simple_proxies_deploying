@@ -1,5 +1,5 @@
 require_relative '../config.rb'
-require_relative '../lib/simpleproxiesdeploying.rb'
+require_relative '../lib/simple_proxies_deploying.rb'
 
 PARSER = BlackStack::SimpleCommandLineParser.new(
   :description => 'Get insight details of all missconfigurations of a specific server.', 
@@ -30,7 +30,7 @@ SERVERS.select { |s| s[:net_remote_ip] == PARSER.value('ip') }.each { |h|
         # TODO: validate the current configuration before install anything?
 
         logger.logs 'install 3proxy... '
-        host.install('leandros', 'SantaClara123')
+        host.install6
         logger.done
 
         logger.logs "disconnecting... "
