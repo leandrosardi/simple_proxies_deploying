@@ -6,7 +6,7 @@
 gem install simple_proxies_deploying
 ```
 
-## 5. Installing IPv4 Datanceter Proxy
+## 2. Installing IPv4 Datanceter Proxy
 
 ```ruby
 require 'simple_proxies_deploying'
@@ -37,7 +37,7 @@ host.ssh_disconnect
 logger.done
 ```
 
-## 6. Installing IPv6 Datanceter Proxies
+## 3. Installing IPv6 Datanceter Proxies
 
 ```ruby
 require 'simple_proxies_deploying'
