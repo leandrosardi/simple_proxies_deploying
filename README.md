@@ -262,15 +262,16 @@ Access the server via SSH, and chage the root passowrd with this command:
 sudo -u root passwd
 ```
 
-# 7. Further Work
+## 7. Further Work
 
-## 7.1. Enhancements
+### 7.1. Enhancements
 
 1. Enhance installation of IPv4 proxies, by validating the stdout of each one of the commands executed in SSH.
 2. Enhance installation of IPv6 proxies, by validating the stdout of each one of the commands executed in SSH.
 3. Installation of multiple IPv4 proxies on the same server.
+4. Integration of this library as an add-on of [Simple Host Monitoring](https://github.com/leandrosardi/simple_host_monitoring).
 
-## 7.2. New Features
+### 7.2. New Features
 
-4. Support for mobile 4g/LTE proxies.
-5. Support for mobile 5g proxies.
+5. Support for mobile 4g/LTE proxies.
+6. Support for mobile 5g proxies.
