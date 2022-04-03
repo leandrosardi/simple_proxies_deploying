@@ -112,6 +112,12 @@ class RemoteHost
     end
 
     # Parse the file /usr/local/etc/3proxy/cfg/3proxy.cfg
+    # Return an array of hash descriptors like this: {:port=>"3130", :external_ip=>"185.165.34.31"}
+    def get_ipv4_proxies()
+        # TODO: Code Me!
+    end
+
+    # Parse the file /usr/local/etc/3proxy/cfg/3proxy.cfg
     # Return an array of hash descriptors like this: {:port=>"4248", :external_ip=>"2602:fed2:770f:df10:8dc9:556f:dfba:8ee3", :subnet64=>"2602:fed2:770f:df10"}
     def get_ipv6_proxies()
         # validation: this host must have defined an ipv6 subnet 48
@@ -136,14 +142,19 @@ class RemoteHost
         results
     end
 
+
+    # check a list of port numbers and return the list of ports that are missconfigured
+    # return an array of errors.
+    def check_all_ipv4_proxies()
+        # TODO: Code Me!
+    end
+    
     # check a list of port numbers and return the list of ports that are missconfigured
     # return an array of errors.
     # validate if there is more than one external ip address belonging the same /64 subnet.
     # validate that each batch of 50 ports is all configured.
     # raise an exception if there are ports outside the range
-    # raise an exception if proxy_port_from is not 4000.
     # raise an exception proxy_port_to is not higher than proxy_port_from.
-    # raise an exception if proxy_port_to+1 is not mod 50.
     def check_all_ipv6_proxies(proxy_port_from=DEFAULT_PROXY_PORT_FROM, proxy_port_to=DEFAULT_PROXY_PORT_TO)
         #raise SimpleProxiesDeployingException.new(9, "#{proxy_port_from}") if proxy_port_from != DEFAULT_PROXY_PORT_FROM
         raise SimpleProxiesDeployingException.new(10, "#{proxy_port_from} and #{proxy_port_to}") if proxy_port_from > proxy_port_to
@@ -203,28 +214,7 @@ class RemoteHost
             end # if !r[:external_ip].nil?
         }             
         self.logger.logf "done (#{i.to_s} errors)"
-=begin
-        # validation: that each batch of 50 ports is all configured, or ir is empty
-        self.logger.logs 'Check non-completed batches... '
-        i = 0
-        results.each { |r|
-            port = r[:port]
-            # si es el fin de un batch
-            if (port-proxy_port_from+1) % DEFAULT_PROXY_PORTS_BATCH_SIZE == 0
-                # cantidad de proxies configurados
-                port_from = port - DEFAULT_PROXY_PORTS_BATCH_SIZE + 1
-                port_to = port
-                b = results.select { |s| s[:port]>=port_from && s[:port]<=port_to && s[:external_ip].nil? }
-                c = results.select { |s| s[:port]>=port_from && s[:port]<=port_to && !s[:external_ip].nil? }
-                if b.size != DEFAULT_PROXY_PORTS_BATCH_SIZE || b.size != DEFAULT_PROXY_PORTS_BATCH_SIZE
-                    e = SimpleProxiesDeployingException.new(13, "#{c.size} proxies configured")
-                    errors << { :proxy_port=>r[:port], :code=>e.code, :description=>e.description, :simple_description=>e.simple_description }
-                    i += 1
-                end
-            end # if !r[:external_ip].nil?
-        }             
-        self.logger.logf "done (#{i.to_s} errors)"
-=end
+
         # return
         errors
     end # def check_all_ipv6_proxies
@@ -254,15 +244,125 @@ class RemoteHost
         raise SimpleProxiesDeployingException.new(3) if !self.ssh
         ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start > /dev/null 2>&1'")
     end
-    
-    # check a list of port numbers and install the proxies that are not configured yet
-    # raise an exception if proxy_port_from is not 4000.
+
+
+    # setup custom IP authorization for a proxy
+    def setup_custom_ip_auth(port)
+        # TODO: Code Me!
+    end
+
+    # setup custom user/pass authorization for a proxy
+    def setup_custom_pass_auth(port)
+        # TODO: Code Me!
+    end
+
+
+    # install ipv4 proxies
+    def install_3proxy()
+        #raise SimpleProxiesDeployingException.new(9, "#{proxy_port_from}") if proxy_port_from != DEFAULT_PROXY_PORT_FROM
+        #raise SimpleProxiesDeployingException.new(10, "#{proxy_port_from} and #{proxy_port_to}") if proxy_port_from > proxy_port_to
+        #raise SimpleProxiesDeployingException.new(11, "from #{proxy_port_from} to #{proxy_port_to}") if (proxy_port_to-proxy_port_from+1) % DEFAULT_PROXY_PORTS_BATCH_SIZE != 0
+
+        # TODO: validate the output
+        logger.logs "Get interface name... "
+        interface = self.get_interface_name
+        logger.logf "done (#{interface})"
+
+        logger.logs "Get server main ip from configuration... "
+        mainip = self.net_remote_ip
+        logger.logf "done (#{mainip})"
+
+        # TODO: validate the output
+        logger.logs "Install packages... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c '
+            apt-get install nano
+            apt-get update
+            apt-get autoremove -y
+            apt-get autoclean -y
+            apt-get clean -y
+            apt-get install fail2ban software-properties-common -y
+            apt-get install build-essential libevent-dev libssl-dev -y
+            apt-get install ethtool -y
+            apt-get install curl -y
+        '")
+        logger.logf "done (#{stdout})"
+
+        # TODO: validate the output
+        logger.logs "Install 3proxy... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c '
+            cd /usr/local/etc
+            wget https://github.com/z3APA3A/3proxy/archive/0.8.12.tar.gz
+            tar zxvf 0.8.12.tar.gz
+            rm 0.8.12.tar.gz
+            mv 3proxy-0.8.12 3proxy 
+            cd 3proxy
+            make -f Makefile.Linux
+            make -f Makefile.Linux install
+            mkdir log
+            cd cfg
+            rm 3proxy.cfg.sample
+        '")
+        logger.logf "done (#{stdout})"
+
+        # TODO: validate the output
+        logger.logs "Install 3proxy... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c '        
+            echo \"#!/usr/local/bin/3proxy
+            daemon
+            pidfile /usr/local/etc/3proxy/3proxy.pid
+            nserver 1.1.1.1
+            nserver 1.0.0.1
+            nscache 65536
+            timeouts 1 5 30 60 180 1800 15 60
+            log /usr/local/etc/3proxy/log/3proxy.log D
+            logformat \\\"- +_L%t.%. %N.%p %E %U %C:%c %R:%r %O %I %h %T\\\"
+            archiver rar rar a -df -inul %A %F
+            rotate 30
+            internal 0.0.0.0
+            external 0.0.0.0
+            authcache ip 60
+            proxy -p3130 -a -n
+            \" > /usr/local/etc/3proxy/cfg/3proxy.cfg
+        '")
+        logger.logf "done (#{stdout})"
+
+        
+        chmod 700 3proxy.cfg
+        sed -i '14s/.*/       \/usr\/local\/etc\/3proxy\/cfg\/3proxy.cfg/' /usr/local/etc/3proxy/scripts/rc.d/proxy.sh
+        sed -i "4ish /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start" /etc/rc.local
+        sed -i '17s/.*/auth strong/' /usr/local/etc/3proxy/cfg/3proxy.cfg
+        sed -i "15s/.*/users $username:CL:$password/" /usr/local/etc/3proxy/cfg/3proxy.cfg 
+        sed -i "18s/.*/allow $username /" /usr/local/etc/3proxy/cfg/3proxy.cfg 
+    end # def install_3proxy
+                
+    # install ipv4 proxies
     # raise an exception proxy_port_to is not higher than proxy_port_from.
-    # raise an exception if proxy_port_to+1 is not mod 50.
-    def install(proxy_port_from=DEFAULT_PROXY_PORT_FROM, proxy_port_to=DEFAULT_PROXY_PORT_TO)
+    def install4(username, password)
         #raise SimpleProxiesDeployingException.new(9, "#{proxy_port_from}") if proxy_port_from != DEFAULT_PROXY_PORT_FROM
         raise SimpleProxiesDeployingException.new(10, "#{proxy_port_from} and #{proxy_port_to}") if proxy_port_from > proxy_port_to
         #raise SimpleProxiesDeployingException.new(11, "from #{proxy_port_from} to #{proxy_port_to}") if (proxy_port_to-proxy_port_from+1) % DEFAULT_PROXY_PORTS_BATCH_SIZE != 0
+
+    end # def install4
+
+    # install ipv6 proxies
+    # raise an exception proxy_port_to is not higher than proxy_port_from.
+    def install6(proxy_port_from=DEFAULT_PROXY_PORT_FROM, proxy_port_to=DEFAULT_PROXY_PORT_TO)
+        #raise SimpleProxiesDeployingException.new(9, "#{proxy_port_from}") if proxy_port_from != DEFAULT_PROXY_PORT_FROM
+        raise SimpleProxiesDeployingException.new(10, "#{proxy_port_from} and #{proxy_port_to}") if proxy_port_from > proxy_port_to
+        #raise SimpleProxiesDeployingException.new(11, "from #{proxy_port_from} to #{proxy_port_to}") if (proxy_port_to-proxy_port_from+1) % DEFAULT_PROXY_PORTS_BATCH_SIZE != 0
+
+        # TODO: validate the output
+        logger.logs "Get interface name... "
+        interface = self.get_interface_name
+        logger.logf "done (#{interface})"
+
+        logger.logs "Get server main ip from configuration... "
+        mainip = self.net_remote_ip
+        logger.logf "done (#{mainip})"
+
+        logger.logs "Install ethtool... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'apt-get install ethtool'")
+        logger.done
 
         # get list of 4-hex-digits subnets
         logger.logs "Initialize list of 4-hex-digit numbers... "
@@ -296,15 +396,6 @@ class RemoteHost
         stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'apt-get install curl'")
         logger.done
         
-        # TODO: validate the output
-        logger.logs "Get interface name... "
-        interface = self.get_interface_name
-        logger.logf "done (#{interface})"
-
-        logger.logs "Get server main ip from configuration... "
-        mainip = self.net_remote_ip
-        logger.logf "done (#{mainip})"
-
         logger.logs "Stop proxy server... "
         stdout = self.stop_proxies
         logger.done #logf "done (#{stdout})"
