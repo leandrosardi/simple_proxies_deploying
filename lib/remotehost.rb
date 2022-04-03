@@ -258,7 +258,7 @@ class RemoteHost
 
 
     # install ipv4 proxies
-    def install_3proxy()
+    def install(username, password, port=3130)
         #raise SimpleProxiesDeployingException.new(9, "#{proxy_port_from}") if proxy_port_from != DEFAULT_PROXY_PORT_FROM
         #raise SimpleProxiesDeployingException.new(10, "#{proxy_port_from} and #{proxy_port_to}") if proxy_port_from > proxy_port_to
         #raise SimpleProxiesDeployingException.new(11, "from #{proxy_port_from} to #{proxy_port_to}") if (proxy_port_to-proxy_port_from+1) % DEFAULT_PROXY_PORTS_BATCH_SIZE != 0
@@ -266,11 +266,11 @@ class RemoteHost
         # TODO: validate the output
         logger.logs "Get interface name... "
         interface = self.get_interface_name
-        logger.logf "done (#{interface})"
+        logger.done #logf "done (#{interface})"
 
         logger.logs "Get server main ip from configuration... "
         mainip = self.net_remote_ip
-        logger.logf "done (#{mainip})"
+        logger.done #logf "done (#{mainip})"
 
         # TODO: validate the output
         logger.logs "Install packages... "
@@ -285,7 +285,7 @@ class RemoteHost
             apt-get install ethtool -y
             apt-get install curl -y
         '")
-        logger.logf "done (#{stdout})"
+        logger.done #logf "done (#{stdout})"
 
         # TODO: validate the output
         logger.logs "Install 3proxy... "
@@ -300,47 +300,79 @@ class RemoteHost
             make -f Makefile.Linux install
             mkdir log
             cd cfg
-            rm 3proxy.cfg.sample
         '")
-        logger.logf "done (#{stdout})"
+        logger.done #logf "done (#{stdout})"
 
         # TODO: validate the output
-        logger.logs "Install 3proxy... "
+        logger.logs "Setup 3proxy.cfg... "
         stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c '        
             echo \"#!/usr/local/bin/3proxy
-            daemon
-            pidfile /usr/local/etc/3proxy/3proxy.pid
-            nserver 1.1.1.1
-            nserver 1.0.0.1
-            nscache 65536
-            timeouts 1 5 30 60 180 1800 15 60
-            log /usr/local/etc/3proxy/log/3proxy.log D
-            logformat \\\"- +_L%t.%. %N.%p %E %U %C:%c %R:%r %O %I %h %T\\\"
-            archiver rar rar a -df -inul %A %F
-            rotate 30
-            internal 0.0.0.0
-            external 0.0.0.0
-            authcache ip 60
-            proxy -p3130 -a -n
-            \" > /usr/local/etc/3proxy/cfg/3proxy.cfg
-        '")
+daemon
+pidfile /usr/local/etc/3proxy/3proxy.pid
+nserver 1.1.1.1
+nserver 1.0.0.1
+nscache 65536
+timeouts 1 5 30 60 180 1800 15 60
+log /usr/local/etc/3proxy/log/3proxy.log D
+logformat \\\"- +_L%t.%. %N.%p %E %U %C:%c %R:%r %O %I %h %T\\\"
+archiver rar rar a -df -inul %A %F
+rotate 30
+internal 0.0.0.0
+external 0.0.0.0
+authcache ip 60
+auth strong
+allow #{username}
+users #{username}:CL:#{password}
+proxy -p#{port} -a -n\" > /usr/local/etc/3proxy/cfg/3proxy.cfg'")
+        logger.done #logf "done (#{stdout})"
+
+        logger.logs "Setup proxy.cfg #1... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'chmod 700 /usr/local/etc/3proxy/cfg/3proxy.cfg'")
         logger.logf "done (#{stdout})"
 
-        
-        chmod 700 3proxy.cfg
-        sed -i '14s/.*/       \/usr\/local\/etc\/3proxy\/cfg\/3proxy.cfg/' /usr/local/etc/3proxy/scripts/rc.d/proxy.sh
-        sed -i "4ish /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start" /etc/rc.local
-        sed -i '17s/.*/auth strong/' /usr/local/etc/3proxy/cfg/3proxy.cfg
-        sed -i "15s/.*/users $username:CL:$password/" /usr/local/etc/3proxy/cfg/3proxy.cfg 
-        sed -i "18s/.*/allow $username /" /usr/local/etc/3proxy/cfg/3proxy.cfg 
+        logger.logs "Setup proxy.cfg #2... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c \"sed -i '14s/.*/       \\/usr\\/local\\/etc\\/3proxy\\/cfg\\/3proxy.cfg/' /usr/local/etc/3proxy/scripts/rc.d/proxy.sh\"")
+        logger.logf "done (#{stdout})"
+
+        logger.logs "Setup proxy.cfg #3... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sed -i \"4ish /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start\" /etc/rc.local'")
+        logger.logf "done (#{stdout})"
+
+#        logger.logs "Setup proxy.cfg #4... "
+#        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c \"sed -i '17s/.*/auth strong/' /usr/local/etc/3proxy/cfg/3proxy.cfg\"")
+#        logger.logf "done (#{stdout})"
+
+#        logger.logs "Setup proxy.cfg #5... "
+#        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sed -i \"16s/.*/users #{username}:CL:#{password}/\" /usr/local/etc/3proxy/cfg/3proxy.cfg'")
+#        logger.logf "done (#{stdout})"
+
+#        logger.logs "Setup proxy.cfg #6... "
+#        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sed -i \"18s/.*/allow #{username} /\" /usr/local/etc/3proxy/cfg/3proxy.cfg'")
+#        logger.logf "done (#{stdout})"        
+
+        logger.logs "Start proxies... "
+        self.start_proxies
+        logger.done
+
     end # def install_3proxy
                 
-    # install ipv4 proxies
+    # install additional ipv4 proxies
     # raise an exception proxy_port_to is not higher than proxy_port_from.
     def install4(username, password)
         #raise SimpleProxiesDeployingException.new(9, "#{proxy_port_from}") if proxy_port_from != DEFAULT_PROXY_PORT_FROM
         raise SimpleProxiesDeployingException.new(10, "#{proxy_port_from} and #{proxy_port_to}") if proxy_port_from > proxy_port_to
         #raise SimpleProxiesDeployingException.new(11, "from #{proxy_port_from} to #{proxy_port_to}") if (proxy_port_to-proxy_port_from+1) % DEFAULT_PROXY_PORTS_BATCH_SIZE != 0
+
+        # TODO: validate the output
+        logger.logs "Get interface name... "
+        interface = self.get_interface_name
+        logger.logf "done (#{interface})"
+
+        logger.logs "Get server main ip from configuration... "
+        mainip = self.net_remote_ip
+        logger.logf "done (#{mainip})"
+        
+        # TODO: Code Me!
 
     end # def install4
 

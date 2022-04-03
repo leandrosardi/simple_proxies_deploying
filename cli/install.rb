@@ -29,8 +29,8 @@ SERVERS.select { |s| s[:net_remote_ip] == PARSER.value('ip') }.each { |h|
 
         # TODO: validate the current configuration before install anything?
 
-        logger.logs 'install... '
-        host.install(4099, 4101)
+        logger.logs 'install 3proxy... '
+        host.install('leandros', 'SantaClara123')
         logger.done
 
         logger.logs "disconnecting... "
