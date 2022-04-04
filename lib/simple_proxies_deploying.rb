@@ -1,4 +1,5 @@
 require 'net/ssh'
+require 'faraday'
 require 'blackstack_commons'
 require 'simple_cloud_logging'
 require 'simple_command_line_parser'
@@ -23,4 +24,5 @@ DEFAULT_PROXY_PORTS_BATCH_SIZE = 50
 
 # 
 require_relative './simpleproxiesdeployingexception.rb'
+require_relative './baseproxy.rb'
 require_relative './remotehost.rb'

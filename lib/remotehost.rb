@@ -333,6 +333,30 @@ proxy -p#{port} -a -n
 \" > /usr/local/etc/3proxy/cfg/3proxy.cfg'")
         logger.done #logf "done (#{stdout})"
 
+        logger.logs "Grant execution on 3proxy.cfg... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'chmod 700 /usr/local/etc/3proxy/cfg/3proxy.cfg'")
+        logger.done #logf "done (#{stdout})"
+
+        logger.logs "Setup proxy.cfg #2... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c \"sed -i '14s/.*/       \\/usr\\/local\\/etc\\/3proxy\\/cfg\\/3proxy.cfg/' /usr/local/etc/3proxy/scripts/rc.d/proxy.sh\"")
+        logger.done #logf "done (#{stdout})"
+
+        logger.logs "Setup proxy.cfg #3... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sed -i \"4ish /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start\" /etc/rc.local'")
+        logger.done #logf "done (#{stdout})"
+
+        logger.logs "Setup proxy.cfg #4... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c \"sed -i '17s/.*/auth strong/' /usr/local/etc/3proxy/cfg/3proxy.cfg\"")
+        logger.done #logf "done (#{stdout})"
+
+        logger.logs "Setup proxy.cfg #5... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sed -i \"16s/.*/users #{username}:CL:#{password}/\" /usr/local/etc/3proxy/cfg/3proxy.cfg'")
+        logger.done #logf "done (#{stdout})"
+
+        logger.logs "Setup proxy.cfg #6... "
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sed -i \"18s/.*/allow #{username} /\" /usr/local/etc/3proxy/cfg/3proxy.cfg'")
+        logger.done #logf "done (#{stdout})"
+
         logger.logs "Start proxy service... "
         self.start_proxies
         logger.done
@@ -477,5 +501,13 @@ proxy -p#{port} -a -n
     def ssh_disconnect()
         self.ssh.close
     end
+
+    def test2(username, password, port=3130)
+        if username.to_s.size > 0 && password.to_s.size > 0
+            return BlackStack::BaseProxy.test2("#{username}:#{password}@#{self.net_remote_ip}:#{port.to_s}")
+        else
+            return BlackStack::BaseProxy.test2("#{self.net_remote_ip}:#{port.to_s}")
+        end
+    end # def test2
 
 end # class RemoteHost

@@ -247,7 +247,37 @@ sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start  > /dev/null 2>&1
 bash /etc/network.conf
 ```
 
-### 5.6. Ask the ISP if the /48 subnet is routed to the VPS
+### 5.6. Check is service is listening
+
+```bash
+netstat -anpe | grep "3130"
+```
+
+If you don't get any result, then most probably you have not permission to run the proxy service.
+
+```bash 
+chmod 700 /usr/local/etc/3proxy/cfg/3proxy.cfg
+```
+
+Also, run these commands
+
+```bash
+sed -i '14s/.*/       \/usr\/local\/etc\/3proxy\/cfg\/3proxy.cfg/' /usr/local/etc/3proxy/scripts/rc.d/proxy.sh
+sed -i "4ish /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start" /etc/rc.local
+sed -i '17s/.*/auth strong/' /usr/local/etc/3proxy/cfg/3proxy.cfg
+sed -i "15s/.*/users $username:CL:$password/" /usr/local/etc/3proxy/cfg/3proxy.cfg 
+sed -i "18s/.*/allow $username /" /usr/local/etc/3proxy/cfg/3proxy.cfg 
+```
+
+Also, start the service again.
+
+```bash
+sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start
+```
+
+
+
+### 5.7. Ask the ISP if the /48 subnet is routed to the VPS
 
 If nothing before worked to get the proxies working, ask the ISP if the /48 subnet is routed to the VPS.
 

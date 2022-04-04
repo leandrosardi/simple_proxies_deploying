@@ -2,6 +2,7 @@ class SimpleProxiesDeployingException < StandardError
     attr_accessor :code, :custom_description
   
     ERROR_CODES = [
+        # SSH connection and proxy server configuration
         { :code => 1, :description => 'Host has not SSH parameters' },   
         { :code => 2, :description => 'Proxy port is not a valid port' },
         { :code => 3, :description => 'No SSH connection' },
@@ -18,6 +19,10 @@ class SimpleProxiesDeployingException < StandardError
         { :code => 12, :description => "Other proxies are belonging the same /64 subnet" },
         { :code => 13, :description => "Each batch of 50 ports must be all configured or all empty" },
         { :code => 14, :description => "Ports outside the range found" },
+
+        # proxy testing
+        { :code => 50, :description => "Proxy is not working" },
+        { :code => 51, :description => "Connection time-out" },
     ]
 
     def self.description(code)

@@ -33,11 +33,11 @@ SERVERS.each { |h|
         logger.logs "disconnecting... "
         host.ssh_disconnect
         logger.done
-
-
+        
     rescue SimpleProxiesDeployingException => e
         logger.logf "error #{e.code} (#{e.description})"
     rescue => e
         logger.logf "unhandled exception (#{e.to_s})"
     end
+    logger.done
 }
