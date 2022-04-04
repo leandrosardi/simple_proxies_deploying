@@ -270,8 +270,10 @@ sudo -u root passwd
 2. Enhance installation of IPv6 proxies, by validating the stdout of each one of the commands executed in SSH.
 3. Installation of multiple IPv4 proxies on the same server.
 4. Integration of this library as an add-on of [Simple Host Monitoring](https://github.com/leandrosardi/simple_host_monitoring).
+5. Resolve "Authentication token is no longer valid; new one required" automatically.
+6. Some hosting providers' VPSs (like FRC) require a password change at the first login via SSH. Such a password change should be fully automated also.
 
 ### 7.2. New Features
 
-5. Support for mobile 4g/LTE proxies.
-6. Support for mobile 5g proxies.
+1. Support for mobile 4g/LTE proxies.
+2. Support for mobile 5g proxies.

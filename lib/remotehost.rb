@@ -256,6 +256,11 @@ class RemoteHost
         # TODO: Code Me!
     end
 
+    # create a copy of the file /usr/local/etc/3proxy/cfg/3proxy.cfg
+    # return the stdout of the command
+    def backup_configuration_file
+        ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'cp /usr/local/etc/3proxy/cfg/3proxy.cfg /usr/local/etc/3proxy/cfg/3proxy.cfg.#{Time.now.strftime('%Y%m%d%H%M%S').to_s}.bak'")
+    end # def backup_configuration_file
 
     # install ipv4 proxies
     def install4(username, password, port=3130)
