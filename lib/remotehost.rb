@@ -485,6 +485,7 @@ proxy -p#{port} -a -n
             end
             port += 1
         end
+        logger.done
 
         # TODO: validate this output
         logger.logs "Start proxy server... "

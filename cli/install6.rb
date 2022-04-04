@@ -29,6 +29,11 @@ SERVERS.select { |s| s[:net_remote_ip] == PARSER.value('ip') }.each { |h|
 
         # TODO: validate the current configuration before install anything?
 
+        # TODO: validate the stdout of the command
+        logger.logs 'backup old configuration file... '
+        stdout = host.backup_configuration_file
+        logger.logf("done (#{stdout})")
+
         logger.logs 'install 3proxy... '
         host.install6
         logger.done
