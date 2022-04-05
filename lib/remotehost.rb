@@ -455,10 +455,12 @@ proxy -p#{port} -a -n
 
         logger.logs "Iterate ports... "
         port = proxy_port_from
+        a = ''
+        b = ''
         while port<=proxy_port_to
-            logger.logs "Checking port #{port}... "
+            #logger.logs "Checking port #{port}... "
             if results.map { |result| result[:port].to_i }.include?(port)
-                logger.logf "done (already installed)"
+                #logger.logf "done (already installed)"
             else
                 #logger.logs "Get an available subnet64... "
                 hex = available_hex4digits[0]
@@ -474,18 +476,34 @@ proxy -p#{port} -a -n
                 #logger.logf("done (#{ipv6})")
                 
                 #logger.logs "Add record to configuration file... "
-                stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'echo proxy -p#{port} -6 -a -n  -i0.0.0.0 -e#{ipv6} >> /usr/local/etc/3proxy/cfg/3proxy.cfg'")
+                a += "echo proxy -p#{port} -6 -a -n  -i0.0.0.0 -e#{ipv6} >> /usr/local/etc/3proxy/cfg/3proxy.cfg\n"
                 #logger.logf("done (#{stdout})")
 
                 #logger.logs "Add IPv6 address... "
-                stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'ip address add #{ipv6} dev #{interface} > /dev/null 2>&1'")
+                b += "ip address add #{ipv6} dev #{interface} > /dev/null 2>&1\n"
                 #logger.logf("done (#{stdout})")
 
-                logger.logf('done (installed)')
+                #logger.logf('done (installed)')
             end
             port += 1
         end
         logger.done
+
+        logger.logs "Add records to 3proxy.cfg... "
+        if a.size>0
+            stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c '#{a}'") 
+            logger.logf("done (#{a.split(/\n/).size} new ports added)")
+        else
+            logger.logf 'no records to add'
+        end
+
+        logger.logs "Adding IP addresses... "
+        if b.size>0
+            stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c '#{b}'") 
+            logger.logf("done (#{b.split(/\n/).size} new ports added)")
+        else
+            logger.logf 'no records to add'
+        end
 
         # TODO: validate this output
         logger.logs "Start proxy server... "
