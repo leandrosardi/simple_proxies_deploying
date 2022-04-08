@@ -385,7 +385,7 @@ proxy -p#{port} -a -n
         logger.done #logf("done (#{stdout})")
 
         logger.logs 'wait... '
-        sleep(15)
+        sleep(30)
         logger.done
 
         logger.logs 'connecting... '
