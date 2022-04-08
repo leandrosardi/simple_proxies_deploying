@@ -19,6 +19,7 @@ class SimpleProxiesDeployingException < StandardError
         { :code => 12, :description => "Other proxies are belonging the same /64 subnet" },
         { :code => 13, :description => "Each batch of 50 ports must be all configured or all empty" },
         { :code => 14, :description => "Ports outside the range found" },
+        { :code => 15, :description => "IPv6 address is not defined in the interface" },
 
         # proxy testing
         { :code => 50, :description => "Proxy is not working" },

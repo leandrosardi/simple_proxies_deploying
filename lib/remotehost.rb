@@ -197,6 +197,14 @@ class RemoteHost
                 end
             end # if a.size > 0
 
+            a.each { |ipv6|
+                stdout = ssh.exec!("ip -6 a | grep #{ipv6}").strip
+                if stdout.to_s.size == 0
+                    e = SimpleProxiesDeployingException.new(15, "#{port.to_s} - #{ipv6}") 
+                    errors << { :proxy_port=>port, :code=>e.code, :description=>e.description, :simple_description=>e.simple_description }
+                end
+            }
+
             port += 1
         end
 
@@ -458,6 +466,8 @@ proxy -p#{port} -a -n
         a = ''
         b = ''
         while port<=proxy_port_to
+            print '.'
+
             #logger.logs "Checking port #{port}... "
 
             if results.map { |result| result[:port].to_i }.include?(port)
