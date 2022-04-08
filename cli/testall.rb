@@ -6,10 +6,10 @@ logger = BlackStack::LocalLogger.new('./checkall.log')
 PORTS = [3130, 4000, 4050, 4300]
 
 SERVERS.each { |h|
+    host = RemoteHost.parse(h)
     PORTS.each { |port|
         logger.logs "#{h[:net_remote_ip]}:#{port}... "
         begin
-            host = RemoteHost.parse(h)
             host.test2('leandros', 'SantaClara123', port)
             logger.done
         rescue SimpleProxiesDeployingException => e

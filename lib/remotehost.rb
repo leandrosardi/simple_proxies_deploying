@@ -177,6 +177,8 @@ class RemoteHost
 
         port = proxy_port_from
         while port <= proxy_port_to
+            #print '.'
+
             # map the external IPs to the port
             a = results.select { |x| x[:port] == port }.map { |x| x[:external_ip] }
 
@@ -196,7 +198,7 @@ class RemoteHost
                     errors << { :proxy_port=>port, :code=>e.code, :description=>e.description, :simple_description=>e.simple_description }
                 end
             end # if a.size > 0
-
+=begin            
             a.each { |ipv6|
                 stdout = ssh.exec!("ip -6 a | grep #{ipv6}").strip
                 if stdout.to_s.size == 0
@@ -204,7 +206,7 @@ class RemoteHost
                     errors << { :proxy_port=>port, :code=>e.code, :description=>e.description, :simple_description=>e.simple_description }
                 end
             }
-
+=end
             port += 1
         end
 
@@ -370,7 +372,39 @@ proxy -p#{port} -a -n
         logger.done
 
     end # def install_3proxy
-                
+               
+    def reboot()
+        host = self
+
+        logger.logs 'reboot... '
+        #stdout = host.reboot
+        begin
+        stdout = host.ssh.exec!("echo '#{host.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'reboot'")
+        rescue
+        end
+        logger.done #logf("done (#{stdout})")
+
+        logger.logs 'wait... '
+        sleep(15)
+        logger.done
+
+        logger.logs 'connecting... '
+        host.ssh_connect
+        logger.done
+
+        logger.logs 'stop proxy service... '
+        stdout = host.ssh.exec!("echo '#{host.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh stop  > /dev/null 2>&1'")
+        logger.done #logf("done (#{stdout})")
+
+        logger.logs 'start proxy service... '
+        stdout = host.ssh.exec!("echo '#{host.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start  > /dev/null 2>&1'")
+        logger.done #logf("done (#{stdout})")
+
+        logger.logs 'setup network.conf... '
+        stdout = host.ssh.exec!("echo '#{host.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'bash /etc/network.conf'")
+        logger.done #logf("done (#{stdout})")
+    end
+
     # install ipv6 proxies
     # raise an exception proxy_port_to is not higher than proxy_port_from.
     def install6(proxy_port_from=DEFAULT_PROXY_PORT_FROM, proxy_port_to=DEFAULT_PROXY_PORT_TO)
@@ -460,6 +494,10 @@ proxy -p#{port} -a -n
             }.include?("#{self.ipv6_subnet_48}:#{hex}") 
         }
         logger.logf("done (#{available_hex4digits.size})")
+
+        logger.logs "Reboot... "
+        self.reboot()
+        logger.done
 
         logger.logs "Iterate ports... "
         port = proxy_port_from

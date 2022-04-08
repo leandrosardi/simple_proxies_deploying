@@ -22,19 +22,24 @@ module BlackStack
       # - https://github.com/apoorvparijat/proxy-test
       # - https://github.com/lostisland/faraday
       # 
-      def self.test2(proxy_str)
-        begin
-          f = Faraday.new(:proxy => { :uri => "http://" + proxy_str})
-          response = f.get "http://www.google.com"
-          cookie = CGI::Cookie.parse(response.headers["set-cookie"])
-          if cookie["NID"].empty?
-            raise SimpleProxiesDeployingException.new(50, proxy_str)
-          else
-            return true
+      def self.test2(proxy_str, max_retries=3)
+        try = 0
+        while true
+          print '.'
+          try+=1
+          begin
+            f = Faraday.new(:proxy => { :uri => "http://" + proxy_str})
+            response = f.get "http://www.google.com"
+            cookie = CGI::Cookie.parse(response.headers["set-cookie"])
+            if cookie["NID"].empty?
+              raise SimpleProxiesDeployingException.new(50, proxy_str)
+            else
+              return true
+            end
+          rescue => e
+            raise e if try > max_retries #SimpleProxiesDeployingException.new(51, "#{proxy_str}: #{e.to_s}")
           end
-        rescue => e
-          raise e #SimpleProxiesDeployingException.new(51, "#{proxy_str}: #{e.to_s}")
-        end
+        end while true
       end # def self.test(proxy_str)
     end # module BaseProxy
 end # module BlackStack
