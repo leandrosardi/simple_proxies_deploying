@@ -459,9 +459,26 @@ proxy -p#{port} -a -n
         b = ''
         while port<=proxy_port_to
             #logger.logs "Checking port #{port}... "
+
             if results.map { |result| result[:port].to_i }.include?(port)
-                #logger.logf "done (already installed)"
-            else
+                #logger.logs "Get ipv6... "
+                result = results.select { |result| result[:port].to_i == port.to_i }.first
+                #logger.logf "done (#{result[:external_ip]})"
+
+                #logger.logs "checking if ipv6 is added to the interface... "
+                stdout = ssh.exec!("ip -6 a | grep #{result[:external_ip]}").strip
+                if stdout.to_s.size == 0
+                    #logger.no
+
+                    #logger.logs "Add ipv6 to the interface... "
+                    stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'ip address add #{result[:external_ip]} dev #{interface} > /dev/null 2>&1'")
+                    #logger.done
+
+                    #logger.logf "done (but fixed)"
+                else
+                    #logger.logf "done (already installed)"
+                end
+            else                
                 #logger.logs "Get an available subnet64... "
                 hex = available_hex4digits[0]
                 subnet64 = "#{self.ipv6_subnet_48}:#{hex}"
@@ -474,7 +491,7 @@ proxy -p#{port} -a -n
                 #logger.logs "Build random IPv6... "
                 ipv6 = "#{subnet64}:#{hex4digits.shuffle[0]}:#{hex4digits.shuffle[0]}:#{hex4digits.shuffle[0]}:#{hex4digits.shuffle[0]}" 
                 #logger.logf("done (#{ipv6})")
-                
+
                 #logger.logs "Add record to configuration file... "
                 a += "echo proxy -p#{port} -6 -a -n  -i0.0.0.0 -e#{ipv6} >> /usr/local/etc/3proxy/cfg/3proxy.cfg\n"
                 #logger.logf("done (#{stdout})")
@@ -485,6 +502,7 @@ proxy -p#{port} -a -n
 
                 #logger.logf('done (installed)')
             end
+
             port += 1
         end
         logger.done
