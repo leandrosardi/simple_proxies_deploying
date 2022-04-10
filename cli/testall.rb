@@ -1,7 +1,7 @@
 require_relative '../config.rb'
 require_relative '../lib/simple_proxies_deploying.rb'
 
-logger = BlackStack::LocalLogger.new('./checkall.log')
+logger = BlackStack::BaseLogger.new(nil)
 
 PORTS = [3130, 4000, 4050, 4300]
 

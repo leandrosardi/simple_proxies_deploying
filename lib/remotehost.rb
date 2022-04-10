@@ -384,8 +384,9 @@ proxy -p#{port} -a -n
         end
         logger.done #logf("done (#{stdout})")
 
-        logger.logs 'wait... '
-        sleep(30)
+        delay = 45
+        logger.logs "wait #{delay.to_s} seconds... "
+        sleep(delay)
         logger.done
 
         logger.logs 'connecting... '
@@ -585,6 +586,10 @@ proxy -p#{port} -a -n
 
     def ssh_disconnect()
         self.ssh.close
+    end
+
+    def test(username, password, port=3130)
+        BlackStack::BaseProxy.test(net_remote_ip, port, username, password)
     end
 
     def test2(username, password, port=3130)
