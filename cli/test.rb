@@ -11,7 +11,7 @@ PARSER = BlackStack::SimpleCommandLineParser.new(
   }]    
 )
 
-PORTS = [3130, 4000, 4050, 4300]
+PORTS = [3130, 4000, 4050, 4300, 4341]
 
 logger = BlackStack::BaseLogger.new(nil)
 

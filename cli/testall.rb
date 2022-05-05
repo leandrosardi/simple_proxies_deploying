@@ -3,7 +3,8 @@ require_relative '../lib/simple_proxies_deploying.rb'
 
 logger = BlackStack::BaseLogger.new(nil)
 
-PORTS = [3130, 4000, 4050, 4300]
+#PORTS = [3130, 4000, 4050, 4300, 4350, 4400, 4450]
+PORTS = [3130, 4300]
 
 SERVERS.each { |h|
     host = RemoteHost.parse(h)

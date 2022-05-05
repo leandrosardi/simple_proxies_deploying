@@ -13,6 +13,7 @@ Gem::Specification.new do |s|
   ]
   s.homepage    = 'https://rubygems.org/gems/simple_proxies_deploying'
   s.license     = 'MIT'
+  s.add_runtime_dependency 'net-ssh', '~> 4.1.0', '>= 4.1.0'
   s.add_runtime_dependency 'faraday', '~> 0.9.2', '>= 0.9.2'
   s.add_runtime_dependency 'websocket', '~> 1.2.8', '>= 1.2.8'
   s.add_runtime_dependency 'json', '~> 1.8.1', '>= 1.8.1'

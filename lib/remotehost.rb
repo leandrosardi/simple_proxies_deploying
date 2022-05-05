@@ -374,6 +374,10 @@ proxy -p#{port} -a -n
     end # def install_3proxy
                
     def reboot()
+        tries = 0
+        max_tries = 20
+        success = false
+
         host = self
 
         logger.logs 'reboot... '
@@ -384,26 +388,37 @@ proxy -p#{port} -a -n
         end
         logger.done #logf("done (#{stdout})")
 
-        delay = 45
-        logger.logs "wait #{delay.to_s} seconds... "
-        sleep(delay)
-        logger.done
+        while tries < max_tries && !success
+            begin
+                tries += 1
 
-        logger.logs 'connecting... '
-        host.ssh_connect
-        logger.done
+                delay = 10
+                logger.logs "wait #{delay.to_s} seconds... "
+                sleep(delay)
+                logger.done
 
-        logger.logs 'stop proxy service... '
-        stdout = host.ssh.exec!("echo '#{host.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh stop  > /dev/null 2>&1'")
-        logger.done #logf("done (#{stdout})")
+                logger.logs "connecting (try #{tries.to_s})... "
+                host.ssh_connect
+                logger.done
 
-        logger.logs 'start proxy service... '
-        stdout = host.ssh.exec!("echo '#{host.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start  > /dev/null 2>&1'")
-        logger.done #logf("done (#{stdout})")
+                logger.logs 'stop proxy service... '
+                stdout = host.ssh.exec!("echo '#{host.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh stop  > /dev/null 2>&1'")
+                logger.done #logf("done (#{stdout})")
 
-        logger.logs 'setup network.conf... '
-        stdout = host.ssh.exec!("echo '#{host.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'bash /etc/network.conf'")
-        logger.done #logf("done (#{stdout})")
+                logger.logs 'start proxy service... '
+                stdout = host.ssh.exec!("echo '#{host.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start  > /dev/null 2>&1'")
+                logger.done #logf("done (#{stdout})")
+
+                logger.logs 'setup network.conf... '
+                stdout = host.ssh.exec!("echo '#{host.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'bash /etc/network.conf'")
+                logger.done #logf("done (#{stdout})")
+
+                success = true
+            rescue => e
+                logger.logf e.to_s #error e
+            end
+        end # while 
+        raise 'reboot failed' if !success
     end
 
     # install ipv6 proxies
@@ -477,16 +492,32 @@ proxy -p#{port} -a -n
         stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'echo \"ifconfig #{interface} add #{self.ipv6_subnet_48}::/48
         ip -6 route add default via #{self.ipv6_subnet_48}::1\" >> /etc/network.conf'")
         logger.done #.logf "done (#{stdout})"
+        
+        # TODO: validate this output
+        logger.logs "Setup /etc/network.conf... Add IPv6 address to interface, which are defined in 3proxy.cfg"
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'echo \"grep 'proxy -p' /usr/local/etc/3proxy/cfg/3proxy.cfg | awk -F-e '{print $2}' | awk 'NF' | while read ip; do ip address add $ip dev #{interface} ; done \" >> /etc/network.conf'")
+        logger.done #.logf "done (#{stdout})"
 
+        # TODO: validate this output
+        logger.logs "Setup /etc/network.conf... Remove duplicates"
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'cat /etc/network.conf | sort  -k2 -k1n  | uniq -f1 | sort -nk1,1 | cut -f2- > /etc/network.conf'")
+        logger.done #.logf "done (#{stdout})"
+        
         # TODO: validate this output
         logger.logs "Remove exit 0 FROM rc.local... "
         stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c \"sed -i '/exit 0/d' /etc/rc.local\"")
         logger.done #.logf "done (#{stdout})"
 
         # TODO: validate this output
-        logger.logs "Remove exit 0 FROM rc.local... "
+        logger.logs "Adding network.conf script in rc.local... "
         stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'echo \"bash /etc/network.conf\" >> /etc/rc.local'")
         logger.done #.logf "done (#{stdout})"
+
+        # TODO: validate this output
+        logger.logs "Setup /etc/rc.local... Remove duplicates"
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'cat /etc/rc.local | sort  -k2 -k1n  | uniq -f1 | sort -nk1,1 | cut -f2- > /etc/rc.local'")
+        logger.done #.logf "done (#{stdout})"
+
 
         logger.logs "Remove not available /64 subnets... "
         available_hex4digits = hex4digits.reject { |hex|
