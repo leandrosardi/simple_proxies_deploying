@@ -133,11 +133,15 @@ class RemoteHost
             # filter all the IPv6 proxies
             x.include?('-6') 
         }.each { |x|
-            # example: proxy -p4245 -6 -a -n -i0.0.0.0 -e2602:fed2:770f:e75c:dc88:fab6:7623:1f47
-            port = x.scan(MATCH_PORT_IN_3PROXY_CONF)[0].gsub(/\-p/, '')
-            external_ip = x.scan(MATCH_IPV6_STANDARD)[0]
-            subnet64 = external_ip.scan(MATCH_IPV6_64_SUBNET_STANDARD)[0]
-            results << { :port => port.to_i, :external_ip => external_ip.to_s, :subnet64 => subnet64.to_s }
+            begin
+                # example: proxy -p4245 -6 -a -n -i0.0.0.0 -e2602:fed2:770f:e75c:dc88:fab6:7623:1f47
+                port = x.scan(MATCH_PORT_IN_3PROXY_CONF)[0].gsub(/\-p/, '')
+                external_ip = x.scan(MATCH_IPV6_STANDARD)[0]
+                subnet64 = external_ip.scan(MATCH_IPV6_64_SUBNET_STANDARD)[0]
+                results << { :port => port.to_i, :external_ip => external_ip.to_s, :subnet64 => subnet64.to_s }
+            rescue Exception 
+                self.logger.logf "Exception raised by line: #{x}"
+            end
         }
         results
     end
@@ -495,12 +499,12 @@ proxy -p#{port} -a -n
         
         # TODO: validate this output
         logger.logs "Setup /etc/network.conf... Add IPv6 address to interface, which are defined in 3proxy.cfg"
-        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'echo \"grep 'proxy -p' /usr/local/etc/3proxy/cfg/3proxy.cfg | awk -F-e '{print $2}' | awk 'NF' | while read ip; do ip address add $ip dev #{interface} ; done \" >> /etc/network.conf'")
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'echo \"grep '\\''proxy -p'\\'' /usr/local/etc/3proxy/cfg/3proxy.cfg | awk -F-e '\\''{print \\$2}'\\'' | awk '\\''NF'\\'' | while read ip; do ip address add \\$ip dev #{interface} ; done \" >> /etc/network.conf ' ")
         logger.done #.logf "done (#{stdout})"
 
         # TODO: validate this output
         logger.logs "Setup /etc/network.conf... Remove duplicates"
-        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'cat /etc/network.conf | sort  -k2 -k1n  | uniq -f1 | sort -nk1,1 | cut -f2- > /etc/network.conf'")
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'cp /etc/network.conf /etc/network.conf_bk && cat /etc/network.conf | awk '\\''!x[$0]++'\\'' > /etc/network_uniq.conf && mv /etc/network_uniq.conf /etc/network.conf '")
         logger.done #.logf "done (#{stdout})"
         
         # TODO: validate this output
@@ -515,7 +519,7 @@ proxy -p#{port} -a -n
 
         # TODO: validate this output
         logger.logs "Setup /etc/rc.local... Remove duplicates"
-        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'cat /etc/rc.local | sort  -k2 -k1n  | uniq -f1 | sort -nk1,1 | cut -f2- > /etc/rc.local'")
+        stdout = ssh.exec!("echo '#{self.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'cp /etc/rc.local /etc/rc.local_bk && cat /etc/rc.local | awk '\\''!x[$0]++'\\'' > /etc/rc_uniq.local && mv /etc/rc_uniq.local /etc/rc.local '")
         logger.done #.logf "done (#{stdout})"
 
 
