@@ -20,12 +20,7 @@ WORKERS.each { |h|
         logger.done
 
         logger.logs "starting workers... "
-        stdout = host.ssh.exec!('
-            cd ~/code/tempora/bash &
-            DISPLAY=:10 &
-            export DISPLAY &
-            xterm -e bash -c "cd ~/code/tempora;./shm.rb;bash" &
-        ')
+        stdout = host.ssh.exec!('~/code/tempora/bash/run.worker.prod.sh')
         logger.logf "done (#{stdout.strip})"
 
         logger.logs "disconnecting... "
