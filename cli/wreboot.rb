@@ -20,12 +20,17 @@ WORKERS.each { |h|
         logger.done
 
         logger.logs "reboot... "
-        host.reboot()
+        #host.reboot()
+        begin
+            stdout = host.ssh.exec!("echo '#{host.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'reboot'")
+        rescue
+            # nothing here
+        end
         logger.done
 
-        logger.logs "disconnecting... "
-        host.ssh_disconnect
-        logger.done
+#        logger.logs "disconnecting... "
+#        host.ssh_disconnect
+#        logger.done
 
         logger.logf "done (#{errors.size} errors)"
 

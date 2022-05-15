@@ -1,4 +1,4 @@
-# Automated start of processes worker servers.
+# Remove Multilogin installation
 
 require_relative '../config.rb'
 require_relative '../lib/simple_proxies_deploying.rb'
@@ -19,8 +19,9 @@ WORKERS.each { |h|
         host.ssh_connect
         logger.done
 
-        logger.logs "starting workers... "
-        stdout = host.ssh.exec!('~/code/tempora/bash/run.worker.prod.sh')
+        timestamp = Time.now.utc.strftime("%Y%m%d%H%M%S") 
+        logger.logs "starting workers (#{timestamp})... "
+        stdout = host.ssh.exec!("echo '#{host.ssh_password.gsub("'", "\\'")}' | sudo -S su root -c 'mv /opt/Multilogin /opt/Multilogin.#{timestamp}'")
         logger.logf "done (#{stdout.strip})"
 
         logger.logs "disconnecting... "

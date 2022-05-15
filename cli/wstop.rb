@@ -8,26 +8,26 @@ logger = BlackStack::BaseLogger.new(nil)
 WORKERS.each { |h|
     errors = []
 
-    logger.logs "#{h[:net_remote_ip]}... "
+    logger.logs "#{h[:name]} (#{h[:net_remote_ip]})... "
     begin
 
-        logger.logs 'creating object... '
+        #logger.logs 'creating object... '
         host = RemoteHost.parse(h, logger)
-        logger.done
+        #logger.done
 
-        logger.logs 'connecting... '
+        #logger.logs 'connecting... '
         host.ssh_connect
-        logger.done
+        #logger.done
 
-        logger.logs "starting workers... "
+        #logger.logs "starting workers... "
         stdout = host.ssh.exec!("
             pkill xterm;pkill chrome;pkill ruby;
         ")
-        logger.logf "done (#{stdout.strip})"
+        #logger.logf "done (#{stdout.strip})"
 
-        logger.logs "disconnecting... "
+        #logger.logs "disconnecting... "
         host.ssh_disconnect
-        logger.done
+        #logger.done
 
         logger.logf "done (#{errors.size} errors)"
 
