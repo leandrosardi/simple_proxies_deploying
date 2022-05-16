@@ -53,8 +53,13 @@ while (true)
             #logger.done
 
             #logger.logs "kill... "
-            output = host.ssh.exec!("pkill xterm; pkill chrome; pkill ruby;")
-            #logger.logf "done (#{output.strip})"
+            output = host.ssh.exec!("pkill xterm")
+            output = host.ssh.exec!("pkill chrome")
+            output = host.ssh.exec!("pkill ruby")
+            output = host.ssh.exec!("pkill bash")
+            output = host.ssh.exec!("pkill multilogin")
+            output = host.ssh.exec!("pkill headless")
+                #logger.logf "done (#{output.strip})"
 
             #logger.logs "get display code... "
             display = host.ssh.exec!("ps -ef |grep Xauthor | grep -v grep | nawk '{print $9}'").strip

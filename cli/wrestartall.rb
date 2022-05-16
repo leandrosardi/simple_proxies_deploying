@@ -21,16 +21,6 @@ exit(0)
 require_relative '../config.rb'
 require_relative '../lib/simple_proxies_deploying.rb'
 
-PARSER = BlackStack::SimpleCommandLineParser.new(
-  :description => 'Get insight details of all missconfigurations of a specific server.', 
-  :configuration => [{
-    :name=>'name', 
-    :mandatory=>true, 
-    :description=>'Name of the server that you want to gathering error details.', 
-    :type=>BlackStack::SimpleCommandLineParser::STRING,
-  }]    
-)
-
 logger = BlackStack::BaseLogger.new(nil)
 
 commands = [
@@ -61,38 +51,33 @@ commands = [
         'worker.rb name=unicorn16',
 ]
 
-WORKERS.select { |s| s[:name] == PARSER.value('name') }.each { |h|
+WORKERS.each { |h|
     errors = []
 
     logger.logs "#{h[:net_remote_ip]}... "
     begin
 
-        logger.logs 'creating object... '
+        #logger.logs 'creating object... '
         host = RemoteHost.parse(h, logger)
-        logger.done
+        #logger.done
 
-        logger.logs 'connecting... '
+        #logger.logs 'connecting... '
         host.ssh_connect
-        logger.done
+        #logger.done
 
-        logger.logs "kill... "
-        output = host.ssh.exec!("pkill xterm")
-        output = host.ssh.exec!("pkill chrome")
-        output = host.ssh.exec!("pkill ruby")
-        output = host.ssh.exec!("pkill bash")
-        output = host.ssh.exec!("pkill multilogin")
-        output = host.ssh.exec!("pkill headless")
-        logger.logf "done (#{output.strip})"
+        #logger.logs "kill... "
+        output = host.ssh.exec!("pkill xterm; pkill chrome; pkill ruby;")
+        #logger.logf "done (#{output.strip})"
 
-        logger.logs "get display code... "
+        #logger.logs "get display code... "
         display = host.ssh.exec!("ps -ef |grep Xauthor | grep -v grep | nawk '{print $9}'").strip
-        logger.logf "done (#{display.strip})"
+        #logger.logf "done (#{display.strip})"
 
         commands.each { |command|
-                logger.logs "run (#{command})... "
+                #logger.logs "run (#{command})... "
                 s = "DISPLAY=#{display};export DISPLAY;/bin/bash --login -c \"xterm -e bash -c 'cd /home/bots/code/tempora;./#{command};bash'\" >/dev/null 2>&1 &"
                 stdout = host.ssh.exec!(s)
-                logger.logf "done (#{stdout.strip})"
+                #logger.logf "done (#{stdout.strip})"
         }
 
         logger.logf "done (#{errors.size} errors)"
