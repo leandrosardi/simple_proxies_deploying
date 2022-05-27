@@ -66,7 +66,12 @@ WORKERS.each { |h|
         #logger.done
 
         #logger.logs "kill... "
-        output = host.ssh.exec!("pkill xterm; pkill chrome; pkill ruby;")
+        output = host.ssh.exec!("pkill xterm")
+        output = host.ssh.exec!("pkill chrome")
+        output = host.ssh.exec!("pkill ruby")
+        output = host.ssh.exec!("pkill bash")
+        output = host.ssh.exec!("pkill multilogin")
+        output = host.ssh.exec!("pkill headless")
         #logger.logf "done (#{output.strip})"
 
         #logger.logs "get display code... "
